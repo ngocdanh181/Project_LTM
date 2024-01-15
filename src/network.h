@@ -12,18 +12,17 @@
 #include <string.h>
 
 
-#define MSG_SIZE 2048
+#define MSG_SIZE 2048 
 #define MAX_SQL_SIZE 3072
-//* Tín hiệu điều khiển
 // chung
 // server
-#define LOGIN_SUCC 101 /* Đăng nhập thành công */
-#define INCORRECT_ACC 102 /* Tài khoản hoặc mật khẩu không chính xác */
-#define SIGNED_IN_ACC 103 /* Tài khoản đã được đăng nhập bởi người khác */
-#define RECV_SUCC 104 /* Nhận dữ liệu thành công */
+#define LOGIN_SUCC 101 
+#define INCORRECT_ACC 102 
+#define SIGNED_IN_ACC 103 
+#define RECV_SUCC 104 
 // client
-#define LOGIN_REQ 201 /* Yêu cầu đăng nhập */
-#define QUIT_REQ 202 /* Thoát ứng dụng */
+#define LOGIN_REQ 201 
+#define QUIT_REQ 202 
 
 #define MSG_SENT_SUCC 301
 #define END_CHAT 302
@@ -52,8 +51,13 @@
 #define LEAVE_GROUP 422
 #define LEAVE_GROUP_SUCC 423
 #define START_GAME 424 
-#define NEXT_QUESTION_REQ 425 
-
+#define QUESTION_2 425 
+#define NEXT_QUESTION 426
+#define NEXT_QUESTION_REQ2 427
+#define NEXT_QUESTION_REQ3 428
+#define SEND_QUESTION 429
+#define END_GAME 430 
+#define SHOW_RANK 431 
 
 #define PRIVATE_CHAT 501
 #define SEND_PUBLIC_KEY 502
@@ -74,6 +78,7 @@ typedef struct Package_ {
     char question[USERNAME_SIZE];
     int answers[3];               
     int correct_index;
+    int score;
 } Package;
 
 

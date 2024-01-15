@@ -27,7 +27,9 @@
 #define INVITE_FRIEND_SUCC_NOTIF "Success!\nUser \"%s\" is now a member of the room \"%s\"."
 #define INVITE_FRIEND_NOTIF "Attention!\nUser \"%s\" has added you to the room \"%s\"."
 #define LEAVE_GROUP_SUCC_NOTIF "Successfully left the room!"
-#define NEW_MESSAGES_NOTIF "------------New Messages------------"
+#define YOU_WIN "You win!"
+#define YOU_LOSE "Haha Loser!" 
+#define NEW_MESSAGES_NOTIF "------------New Room------------"
 
 
 //* builder for loading views
@@ -124,6 +126,7 @@ void on_answerA_btn_clicked(GtkButton *button, gpointer data);
 void on_answerB_btn_clicked(GtkButton *button, gpointer data);
 void on_answerC_btn_clicked(GtkButton *button, gpointer data);
 
+
 void on_receiver_username_confirm_btn_clicked(GtkButton *btn, gpointer data);
 
 void on_join_group_create_btn_clicked(GtkButton *btn, gpointer data);
@@ -176,6 +179,11 @@ gboolean recv_show_group_mem_number(gpointer data);
 gboolean recv_show_group_mem_username(gpointer data);
 gboolean recv_leave_group_succ(gpointer data);
 gboolean recv_start_game(gpointer data);
+gboolean recv_show_rank(gpointer data);
 gboolean update_question_ui(gpointer data);
+gboolean update_question_ui1(gpointer data);
+gboolean update_question_ui2(gpointer data);
+gboolean switch_to_main_window(gpointer data);
+
 
 #endif

@@ -66,18 +66,6 @@
             <property name="y">142</property>
           </packing>
         </child>
-        <child>
-          <object class="GtkTextView" id="question1">
-            <property name="width-request">100</property>
-            <property name="height-request">80</property>
-            <property name="visible">True</property>
-            <property name="can-focus">True</property>
-          </object>
-          <packing>
-            <property name="x">300</property>
-            <property name="y">50</property>
-          </packing>
-        </child>
       </object>
     </child>
   </object>

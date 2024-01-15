@@ -15,7 +15,7 @@ void write_to_file(Account *list) {
     if (fp) {
         Account *acc = list;
         while (acc) {
-            fprintf(fp, "%s %s %d\n", acc->username, acc->password, acc->status);
+            fprintf(fp, "%s %s %d %d\n", acc->username, acc->password, acc->status, acc->score);
             acc = acc->next;
         }
 
@@ -36,12 +36,14 @@ Account* read_account_list() {
     char username[USERNAME_SIZE + 1];
     char password[PASSWORD_SIZE + 1];
     int status;
+    int score;
 
     if (fp) {
         while (!feof(fp)) {
             fscanf(fp, "%s", username);
             fscanf(fp, "%s", password);
             fscanf(fp, "%d", &status);
+            fscanf(fp, "%d", &score);
 
             if (strlen(username) == 0) {
                 continue;
@@ -51,6 +53,7 @@ Account* read_account_list() {
             strcpy(acc->username, username);
             strcpy(acc->password, password);
             acc->status = status;
+            acc->score = score;
             acc->consecutive_failed_sign_in = 0;
             acc->is_signed_in = 0;
 
@@ -74,6 +77,48 @@ Account* read_account_list() {
 
     return list;
 }
+
+
+void get_top_5_players(Account *acc_list, char *msg) {
+    int account_count = 0;
+    Account *current = acc_list;
+    while (current != NULL) {
+        account_count++;
+        current = current->next;
+    }
+
+    if (account_count == 0) {
+        strcpy(msg, "Have not anyone.");
+        return;
+    }
+
+    Account accounts[account_count];
+    current = acc_list;
+    for (int i = 0; i < account_count; i++) {
+        accounts[i] = *current;
+        current = current->next;
+    }
+
+    for (int i = 0; i < account_count - 1; i++) {
+        for (int j = 0; j < account_count - i - 1; j++) {
+            if (accounts[j].score < accounts[j + 1].score) {
+                Account temp = accounts[j];
+                accounts[j] = accounts[j + 1];
+                accounts[j + 1] = temp;
+            }
+        }
+    }
+
+    int top_users_count = 5 < account_count ? 5 : account_count;
+    char line[512];
+    strcpy(msg, "Top 5 users score:\n");
+    for (int i = 0; i < top_users_count; i++) {
+        sprintf(line, "%d- %s - %d Score\n",i+1, accounts[i].username, accounts[i].score);
+        strcat(msg, line);
+    }
+}
+
+
 
 void write_to_file1(Question *list1) {
 

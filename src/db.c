@@ -79,15 +79,4 @@ void drop_table(int group_id)
     sqlite3_close(database);
 }
 
-// int main(int argc, char *argv[])
-// {
-//     sqlite3 *db;
-//     Package pkg1;
-//     strcpy(pkg1.sender, "tuanchibi");
-//     strcpy(pkg1.msg, "hello");
-//     pkg1.group_id = 0;
-//     char *zErrMsg = 0;
 
-//     see_chat(&pkg1);
-//     return 0;
-// }

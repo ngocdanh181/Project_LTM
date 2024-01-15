@@ -1,10 +1,6 @@
-hust hust123 0
-soict soict123 0
-huytq 1 1
-hedspi 1 1
-test 1 1
-tuanchibi 1 1
-tuan 1 1
-thai 1 1
-huy 1 1
-minh 1 1
+hust hust123 0 200
+soict soict123 0 130
+danh dz 0 100
+hello danh 0 40
+duong kkk 0 20
+haha ssss 0 50

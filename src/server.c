@@ -5,14 +5,71 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h> 
+#include <unistd.h>
+#include <stdbool.h>
+#include <errno.h>
+
 
 Active_user user[MAX_USER];
 Group group[MAX_GROUP];
-Account *acc_list;
+Account *acc_list; 
 Question *que_list;
 
 Public_key_users pub[512];
 int pubkey_count = 0;
+
+QuizQuestion quizQuestions[12] = {
+    {"1 + 5 = ", {2, 3, 4}, 0},
+    {"1 + 3 = ", {4, 5, 6}, 0},
+    {"3 + 3 = ", {6, 7, 8}, 0},
+    {"2 + 2 = ", {4, 5, 6}, 0},
+    {"6 + 6 = ", {8, 9, 10}, 0},
+    {"4 + 4 = ", {4, 5, 6}, 0},
+    {"5 + 5 = ", {4, 5, 6}, 0},
+    {"3 + 3 = ", {6, 7, 8}, 0},
+    {"2 + 2 = ", {4, 5, 6}, 0},
+    {"6 + 6 = ", {8, 9, 10}, 0},
+    {"10 + 10 = ", {4, 5, 6}, 0},
+    {"5 + 5 = ", {4, 5, 6}, 0}
+    
+};
+
+pthread_t countdown_thread=0;
+pthread_mutex_t countdown_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t index_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
+
+typedef struct {
+	int conn_socket; 
+    Package *pkg;
+    QuizQuestion *next_question;
+} CountdownThreadData;
+
+int current_question_index = 0;
+void *countdown_timer(void *param) {
+    CountdownThreadData *data = (CountdownThreadData *)param;
+
+    while (1) {
+        pthread_mutex_lock(&mutex);
+
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += 10; 
+
+        int result = pthread_cond_timedwait(&cond, &mutex, &ts);
+        if (result == ETIMEDOUT) {
+            send_question(data->conn_socket, data->pkg, &quizQuestions[5]);
+        } 
+
+        pthread_mutex_unlock(&mutex);
+    }
+
+    free(data);
+    pthread_exit(NULL);
+}
+
 
 int create_listen_socket()
 {
@@ -248,11 +305,33 @@ void sv_user_use(int conn_socket)
         case JOIN_GROUP:
             sv_join_group(conn_socket, &pkg);
             break;
-        case START_GAME:
-            handle_start_activity(conn_socket, &pkg);
+		case START_GAME:
+			handle_start_activity(conn_socket, &pkg);
             break;    
-        case NEXT_QUESTION_REQ:
-			get_next_question(conn_socket, &pkg); 
+		case NEXT_QUESTION:
+				pthread_mutex_lock(&index_mutex);
+    			current_question_index++;
+    			pthread_mutex_unlock(&index_mutex);
+
+            printf("cau so %d",current_question_index); 
+            if (current_question_index < MAX_QUESTIONS) {
+                send_question(conn_socket, &pkg,&quizQuestions[current_question_index]);
+        		CountdownThreadData *data = malloc(sizeof(CountdownThreadData));
+    
+    			data->pkg = &pkg;
+    			data->conn_socket = conn_socket; 
+				pthread_t countdown_thread;
+    			pthread_create(&countdown_thread, NULL, countdown_timer, data);
+    			pthread_mutex_lock(&mutex);
+    			pthread_cond_signal(&cond); // Kích ho?t bi?n ði?u ki?n ð? reset th?i gian ð?m ngý?c
+    			pthread_mutex_unlock(&mutex);
+    			pthread_detach(countdown_thread);
+            } 
+			else {
+                end_game(conn_socket, &pkg);
+               // current_question_index = -1; 
+        	}
+            break;		 
         case HANDEL_GROUP_MESS:
             // hien ra thong tin phong
             break;
@@ -267,6 +346,9 @@ void sv_user_use(int conn_socket)
             break;
         case LEAVE_GROUP:
             sv_leave_group(conn_socket, &pkg);
+            break;
+        case SHOW_RANK:
+		    get_rank(conn_socket, &pkg);
             break;
         default:
             break;
@@ -447,53 +529,97 @@ void sv_chat_all(int conn_socket, Package *pkg)
 }
 
 void handle_start_activity(int conn_socket, Package *pkg) {
+	current_question_index++;
     int group_id = pkg->group_id;
     pkg->ctrl_signal = START_GAME;
-    char question[] = "1 + 1 = ";
-	int answer_a = 2;
-	int answer_b = 3;
-	int answer_c = 4;
-	int correct_index =0;
-	strcpy(pkg->question,question);
-	pkg->answers[0]=answer_a;
-	pkg->answers[1]=answer_b;
-	pkg->answers[2]=answer_c;
-	pkg->correct_index =0;
+	
+	strcpy(pkg->question, quizQuestions[0].question);
+    memcpy(pkg->answers, quizQuestions[0].answers, sizeof(quizQuestions[0].answers));
+    pkg->correct_index = quizQuestions[0].correct_index;
 	 
     int i = 0;
     for (i = 0; i < MAX_USER; i++)
     {
         if (group[group_id].group_member[i].socket > 0){
         	strcpy(pkg->receiver,group[group_id].group_member[i].username) ;
+        	printf("%s ",group[group_id].group_member[i].username);
 			send(group[group_id].group_member[i].socket, pkg, sizeof(*pkg), 0);
 			}
     }
     
 }
 
-void get_next_question(int conn_socket, Package *pkg){
-	int group_id = pkg->group_id;
-    pkg->ctrl_signal = NEXT_QUESTION_REQ;
-    char question[] = "1 + 3 = ";
-	int answer_a = 2;
-	int answer_b = 3;
-	int answer_c = 4;
-	int correct_index =0;
-	strcpy(pkg->question,question);
-	pkg->answers[0]=answer_a;
-	pkg->answers[1]=answer_b;
-	pkg->answers[2]=answer_c;
-	pkg->correct_index =0;
-	printf("%d",group_id); 
-	
-    int i = 0;
+void send_question(int conn_socket,Package *pkg, QuizQuestion *question) {
+	int group_id = pkg->group_id; 
+    pkg->ctrl_signal = SEND_QUESTION;
+    strcpy(pkg->question, question->question);
+    memcpy(pkg->answers, question->answers, sizeof(question->answers));
+    pkg->correct_index = question->correct_index;
+
+   	int i = 0;
     for (i = 0; i < MAX_USER; i++)
     {
         if (group[group_id].group_member[i].socket > 0){
-			send(group[group_id].group_member[i].socket, pkg, sizeof(*pkg), 0);
-			printf("hhh"); 
+        	if (strcmp(group[group_id].group_member[i].username,pkg->sender) ==0){
+        		group[group_id].group_member[i].score = pkg -> score;	
+			}
+        	send(group[group_id].group_member[i].socket, pkg, sizeof(*pkg), 0);
 			}
     }
+     
+}
+
+
+void end_game(int conn_socket, Package *pkg) {
+    int group_id = pkg->group_id;
+    pkg->ctrl_signal = END_GAME;
+
+    for (int i = 0; i < MAX_USER; i++) {
+        if (group[group_id].group_member[i].socket > 0) {
+            bool is_winner = true;
+            bool is_draw = false;
+
+            for (int j = 0; j < MAX_USER; j++) {
+                if (i != j && group[group_id].group_member[j].socket > 0) {
+                    if (group[group_id].group_member[i].score < group[group_id].group_member[j].score) {
+                        is_winner = false;
+                        break;
+                    } else if (group[group_id].group_member[i].score == group[group_id].group_member[j].score) {
+                        is_draw = true;
+                    }
+                }
+            }
+
+            if (is_winner && !is_draw) {
+                strcpy(pkg->msg, "You Win");
+                printf("%s win ", group[group_id].group_member[i].username);
+                Account* winning_account = find_account(acc_list, group[group_id].group_member[i].username);
+                if (winning_account != NULL) {
+                    winning_account->score += 10; 
+                }
+            } else if (is_draw) {
+                strcpy(pkg->msg, "Draw");
+                printf("%s draw ", group[group_id].group_member[i].username);
+            } else {
+                strcpy(pkg->msg, "You Lose");
+                printf("%s lose ", group[group_id].group_member[i].username);
+            }
+            send(group[group_id].group_member[i].socket, pkg, sizeof(*pkg), 0);
+            printf("%d", group[group_id].group_member[i].score);
+        }
+    }
+    write_to_file(acc_list);
+}
+
+void get_rank(int conn_socket, Package *pkg){
+	char ranking_msg[1024]; 
+    get_top_5_players(acc_list, ranking_msg);
+
+    strncpy(pkg->msg, ranking_msg, sizeof(pkg->msg) - 1);
+    pkg->msg[sizeof(pkg->msg) - 1] = '\0'; 
+    pkg->ctrl_signal = SHOW_RANK;
+    send(conn_socket, pkg, sizeof(*pkg), 0);
+    
 }
 
 int search_user(int conn_socket)
@@ -769,9 +895,6 @@ void sv_show_group_info(int conn_socket, Package *pkg)
     pkg->ctrl_signal = SHOW_GROUP_MEM_NUMBER;
     send(conn_socket, pkg, sizeof(*pkg), 0);
 
-    // strcpy(pkg->msg, "MEMBERS OF GROUP:");
-    // pkg->ctrl_signal = SHOW_GROUP_MEM_USERNAME;
-    // send(conn_socket, pkg, sizeof(*pkg), 0);
     for (int i = 0; i < MAX_USER; i++)
     {
         if (group[group_id].group_member[i].socket >= 0)

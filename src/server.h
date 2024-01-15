@@ -8,13 +8,17 @@
 
 #include "rsa.h"
 
+#include <stdbool.h>
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 8080
 #define MAX_USER 1024
 #define MAX_GROUP 10
+#define MAX_QUESTIONS 7 
 #define NULL_STRING "#NULL_STRING#"
 #define SERVER_SYSTEM_USERNAME "#server_system#"
 #define GROUP_NAME_SIZE 30
+#define NUMBER_OF_QUESTIONS 4 
+
 
 typedef struct Active_user_ {
     char username[USERNAME_SIZE]; 
@@ -26,6 +30,7 @@ typedef struct Active_user_ {
 typedef struct Member_{
     char username[USERNAME_SIZE]; 
     int socket; 
+    int score ;
 } Member;
 
 typedef struct Group_ {
@@ -39,6 +44,14 @@ typedef struct public_key_users_ {
     struct public_key_class public_key[1];
 }Public_key_users;
 
+typedef struct {
+    char question[100];
+    int answers[3];
+    int correct_index;
+} QuizQuestion;
+
+
+
 void send_public_key(int client_socket, char* receiver);
 void save_public_key(char* sender, char* msg);
 
@@ -48,11 +61,19 @@ int accept_conn(int listen_socket);
 
 void make_server();
 
+//void *question_timer(void *arg);
+
+//void reset_and_start_timer(TimerData *data);
+
 void *pre_login_srv(void *param);
 
 void handle_login(int conn_socket, Account *acc_list);
 
 int search_user(int conn_socket);
+
+//void* question_timer(void *arg);
+
+//void start_question_timer(int conn_socket);
 
 void sv_user_use(int conn_socket);
 
@@ -86,11 +107,29 @@ void sv_invite_friend(int conn_socket, Package *pkg);
 
 void sv_group_chat(int conn_socket, Package *pkg);
 
+void update_client_response(bool responded);
+
+bool client_response_received();
+
 void handle_start_activity(int conn_socket, Package *pkg);
 
 void send_start_activity_to_group(Group *group, Package *pkg);
 
+void send_question(int conn_socket,Package *pkg, QuizQuestion *question);
+
+void *countdown_timer(void *param);
+
+bool check_for_correct_answer(int conn_socket, Package *pkg, QuizQuestion *question);
+
+void end_game(int conn_socket, Package *pkg);
+
+void get_rank(int conn_socket, Package *pkg);
+
 void get_next_question(int conn_socket, Package *pkg); 
+
+void get_next_question1(int conn_socket, Package *pkg);
+ 
+void get_next_question2(int conn_socket, Package *pkg); 
 
 void sv_show_group_info(int conn_socket, Package *pkg);
 

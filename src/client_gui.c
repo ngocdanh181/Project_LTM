@@ -8,7 +8,12 @@
 
 Package pkg;
 GMutex ui_mutex;
+GMutex ui_mutex1; 
 int is_done;
+int correct;
+int score=0; ; 
+Group group[MAX_GROUP];
+
 
 sqlite3 *database;
 char **resultp;
@@ -37,8 +42,7 @@ void on_login_btn_clicked(GtkButton *btn, gpointer data) {
 
     // checking result
     if (result == LOGIN_SUCC) {
-
-        gtk_widget_destroy(GTK_WIDGET(login_window));
+		gtk_widget_destroy(GTK_WIDGET(login_window));
         show_main_window((int *) data);
         
     } else if (result == INCORRECT_ACC) {
@@ -84,9 +88,13 @@ void on_logout_btn_clicked(GtkButton *btn, gpointer data) {
 }
 
 void on_private_chat_btn_clicked(GtkButton *btn, gpointer data) {
-
-    int client_socket = *((int *) data);
-    show_receiver_username_dialog((int *) data);
+	int client_socket = *((int *) data);
+	printf("anhyeu%d\n",client_socket);
+	Package pkg;
+    pkg.ctrl_signal = SHOW_RANK;
+    strcpy(pkg.sender, my_username);
+    send(client_socket, &pkg, sizeof(pkg), 0);
+	
 }
 
 void on_group_chat_btn_clicked(GtkButton *btn, gpointer data) {
@@ -155,8 +163,7 @@ void on_send_btn_clicked(GtkButton *btn, gpointer data) {
 
 void on_start_btn_clicked(GtkButton *btn,gpointer data) {
 	int client_socket = *((int *) data);
-	n= client_socket;
-	printf("%d",n);
+	printf("anhyeu%d\n",client_socket);
 	Package pkg;
     pkg.ctrl_signal = START_GAME;
     strcpy(pkg.sender, my_username);
@@ -167,14 +174,21 @@ void on_start_btn_clicked(GtkButton *btn,gpointer data) {
 
 void on_answerA_btn_clicked(GtkButton *button, gpointer data) {
     Package *received_pkg = (Package *)data;
-    printf("true %d",n);
-    int client_socket = n; 
+    
+    int client_socket = n;
+    
+    printf("Dap an %d\n",received_pkg->correct_index); 
 	int group_id =  received_pkg->group_id;
-    if (received_pkg->correct_index == 0) {  
-    	printf("true1");
-        Package send_pkg;
+    if (correct == 0) { 
+	 
+    	score++;
+		int i = 0;
+  		printf("socket %d\n",client_socket);	
+  		printf("socket %d",group[group_id].group_member[i].socket);	
+  		Package send_pkg;
         send_pkg.group_id=group_id;
-        send_pkg.ctrl_signal = NEXT_QUESTION_REQ; 
+        send_pkg.score=score;
+        send_pkg.ctrl_signal = NEXT_QUESTION; 
         strcpy(send_pkg.sender, my_username);
         send(client_socket, &send_pkg, sizeof(send_pkg), 0);
 		
@@ -185,14 +199,21 @@ void on_answerA_btn_clicked(GtkButton *button, gpointer data) {
 
 void on_answerB_btn_clicked(GtkButton *button, gpointer data) {
     Package *received_pkg = (Package *)data;
-    printf("true %d",n);
-    int client_socket = n; 
+    int client_socket = n;
 	int group_id =  received_pkg->group_id;
-    if (received_pkg->correct_index == 1) {  
-    	printf("true1");
+	
+    if (correct == 1) {  
+		score++; 
+		int i = 0;
+  		for (i < 0; i < MAX_USER;i++){
+  			if (group[group_id].group_member[i].socket ==client_socket){
+  				group[group_id].group_member[i].score = score;
+			  }
+		  }
         Package send_pkg;
         send_pkg.group_id=group_id;
-        send_pkg.ctrl_signal = NEXT_QUESTION_REQ; 
+        send_pkg.score=score;
+        send_pkg.ctrl_signal = NEXT_QUESTION; 
         strcpy(send_pkg.sender, my_username);
         send(client_socket, &send_pkg, sizeof(send_pkg), 0);
 		
@@ -204,13 +225,19 @@ void on_answerB_btn_clicked(GtkButton *button, gpointer data) {
 void on_answerC_btn_clicked(GtkButton *button, gpointer data) {
     Package *received_pkg = (Package *)data;
     printf("true %d",n);
-    int client_socket = n; 
+	int client_socket = n;
 	int group_id =  received_pkg->group_id;
-    if (received_pkg->correct_index == 0) {  
-    	printf("true1");
+    if (correct == 2) {  
+  		score++; 
+  		int i = 0;
+  		for (i < 0; i < MAX_USER;i++){
+  			if (group[group_id].group_member[i].socket ==client_socket){
+  				group[group_id].group_member[i].score = score;
+			  }
+		  }
         Package send_pkg;
         send_pkg.group_id=group_id;
-        send_pkg.ctrl_signal = NEXT_QUESTION_REQ; 
+        send_pkg.ctrl_signal = NEXT_QUESTION; 
         strcpy(send_pkg.sender, my_username);
         send(client_socket, &send_pkg, sizeof(send_pkg), 0);
 		
@@ -528,30 +555,24 @@ void start_game_interface(Package *pkg){
     answerB = GTK_WIDGET(gtk_builder_get_object(builder, "answerB"));
     answerC = GTK_WIDGET(gtk_builder_get_object(builder, "answerC"));
     question1 = GTK_WIDGET(gtk_builder_get_object(builder, "question1"));
-     isGameInterfaceActive = TRUE;
+    isGameInterfaceActive = TRUE;
     
     g_signal_connect(answerA, "clicked", G_CALLBACK(on_answerA_btn_clicked), pkg);
+    g_signal_connect(answerB, "clicked", G_CALLBACK(on_answerB_btn_clicked), pkg); 
+	g_signal_connect(answerC, "clicked", G_CALLBACK(on_answerC_btn_clicked), pkg); 
     g_signal_connect(game, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-	g_signal_connect(answerB, "clicked", G_CALLBACK(on_answerB_btn_clicked), pkg); 
-	g_signal_connect(answerC, "clicked", G_CALLBACK(on_answerC_btn_clicked), pkg);   
+	  
 	//g_signal_connect_swapped(main_window, "destroy", G_CALLBACK(gtk_widget_destroy), group_info_dialog);
     //g_signal_connect_swapped(group_info_confirm_btn, "clicked", G_CALLBACK(gtk_widget_destroy), group_info_dialog);
 	
 	char question_text[USERNAME_SIZE + 100] = {0};
     sprintf(question_text, "%s\n A.%d\n B.%d\n C.%d",pkg->question,pkg->answers[0], pkg->answers[1],pkg->answers[2]);
-    
+    correct = pkg->correct_index; 
     gtk_label_set_text(GTK_LABEL(question), question_text);
     
     
-    //char question_text[USERNAME_SIZE + 100] = {0};
-	//GtkTextBuffer *buffer;
-
-	//sprintf(question_text, "%s\n A.%d\n B.%d\n C.%d", pkg->question, pkg->answers[0], pkg->answers[1], pkg->answers[2]);
-	//printf("%s\n A.%d\n B.%d\n ",pkg->question, pkg->answers[0], pkg->answers[1]);
-	//buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(question1));
-	
-	//gtk_text_buffer_set_text(buffer, question_text, -1);
-	int client_socket_pt=m;
+	int client_socket_pt=n;
+	printf("hello%d",client_socket_pt); 
 	g_thread_new("recv_handler1", recv_handler1, &client_socket_pt);
 	
     gtk_widget_show(game);
@@ -568,15 +589,21 @@ gpointer recv_handler1(gpointer data) {
         recv(client_socket, &pkg, sizeof(pkg), 0);
         is_done = 0;
         switch (pkg.ctrl_signal) {
-            case NEXT_QUESTION_REQ:
-            	printf("2\n"); 
+            
+			 case SEND_QUESTION:
+            	 printf("Received question\n"); 
 			 	gdk_threads_add_idle(update_question_ui, &pkg);
-			 	break;
+			 	break;	 
+			case END_GAME:
+				printf("score: %d", score);
+			 	gdk_threads_add_idle(switch_to_main_window, &pkg);
+			 	break;	 	 
+				 	
             default:
                 is_done = 1;
                 break;
         }
-        // wait for the task to be done
+        
         while (!is_done);
     }
 
@@ -615,6 +642,9 @@ gpointer recv_handler(gpointer data) {
             case SHOW_GROUP:
                 gdk_threads_add_idle(recv_show_group, pkg.msg);
                 break;
+            case SHOW_RANK:
+                gdk_threads_add_idle(recv_show_rank, &pkg);
+                break;   
 
             case MSG_MAKE_GROUP_SUCC:
                 gdk_threads_add_idle(recv_make_group_succ, pkg.msg);
@@ -644,10 +674,6 @@ gpointer recv_handler(gpointer data) {
             	printf("123\n"); 
             	gdk_threads_add_idle(recv_start_game, &pkg);
             	break;
-            case NEXT_QUESTION_REQ:
-            	printf("2\n"); 
-			 	gdk_threads_add_idle(update_question_ui, &pkg);
-			 	break;
             case ERR_IS_MEM:
                 gdk_threads_add_idle(recv_err_is_mem, NULL);
                 break;
@@ -1173,25 +1199,43 @@ gboolean recv_start_game(gpointer data) {
 	g_mutex_lock(&ui_mutex);
 		start_game_interface(pkg_pt);
     g_mutex_unlock(&ui_mutex);
+	is_done = 1;
+    return FALSE;
+}
 
+gboolean recv_show_rank(gpointer data) {
+    Package *pkg = (Package *) data;
+	g_mutex_lock(&ui_mutex);
+		notif_dialog(GTK_WINDOW(main_window),pkg->msg );
+    g_mutex_unlock(&ui_mutex);
+	is_done = 1;
     return FALSE;
 }
 
 gboolean update_question_ui(gpointer data) {
-    if (!isGameInterfaceActive) {
-        return G_SOURCE_REMOVE;
-    }
-
     Package *pkg = (Package *)data;
+    g_mutex_lock(&ui_mutex1);  
+
     char question_text[USERNAME_SIZE + 100] = "";
     sprintf(question_text, "%s\n A.%d\n B.%d\n C.%d", pkg->question, pkg->answers[0], pkg->answers[1], pkg->answers[2]);
     gtk_label_set_text(GTK_LABEL(question), question_text);
-
-    return G_SOURCE_REMOVE; 
+	correct = pkg->correct_index;
+    g_mutex_unlock(&ui_mutex1);  
+    is_done = 1;
+    return FALSE;
 }
 
+gboolean switch_to_main_window(gpointer data) {
+	Package *pkg = (Package *)data;
+	 g_mutex_lock(&ui_mutex1);
+	//gtk_widget_hide(game);
+	
+			notif_dialog(GTK_WINDOW(game),pkg->msg );
 
-
+	
+	 g_mutex_unlock(&ui_mutex1);
+	 return FALSE;
+}
 
 
 //* ----------------------- MAIN FUNCTION -----------------------
@@ -1199,12 +1243,15 @@ int main(int argc, char *argv[]) {
 
     // init client socket
     int client_socket = connect_to_server();
-
+	n = client_socket;
+	printf("%d",n); 
+	 
     // init GTK
     gtk_init(&argc, &argv);
 
     // init GMutex
     g_mutex_init(&ui_mutex);
+    g_mutex_init(&ui_mutex1);
 
     // show login window
     show_login_window(&client_socket);

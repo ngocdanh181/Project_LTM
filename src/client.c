@@ -44,46 +44,6 @@ int connect_to_server()
     return client_socket;
 }
 
-void login_menu()
-{
-    printf("------ Welcome to chat app ------\n");
-    printf("1. Login\n");
-    // printf("2. Sign up\n");
-    printf("2. Exit\n");
-    // printf("Your choice: ");
-}
-
-void user_menu()
-{
-    printf("\n\n****** Login success ******\n");
-    // printf("1. Show current online users\n");
-    printf("1. Private chat\n");
-    printf("2. Chat All\n");
-    printf("3. Logout\n");
-    printf("4. Show online users\n");
-    printf("5. Group chat\n");
-    // printf("Your choice: ");
-}
-
-//  nhom chat menu 17/01/2023
-void group_chat_menu()
-{
-    printf("\n\n****** Group chat ******\n");
-    printf("1. Show my group\n");
-    printf("2. Make new group\n");
-    printf("3. Join group\n");
-    printf("4. Return main menu\n");
-}
-
-void sub_group_chat_menu(char *group_name){
-    printf("\n\n****** %s ******\n", group_name);
-    printf("1. Invite your friends\n");
-    printf("2. Chat \n");
-    printf("3. Show group infomation \n");
-    printf("4. Leave the group chat\n");
-    printf("5. View chat history\n");
-    printf("6. Return group chat menu\n");
-}
 
 int login(int client_socket, char *username, char *password)
 {

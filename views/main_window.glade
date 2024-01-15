@@ -40,7 +40,8 @@
         </child>
         <child>
           <object class="GtkButton" id="private_chat_btn">
-            <property name="label" translatable="yes">Chat Riêng</property>
+            <property name="label" translatable="yes">Bảng xếp hạng
+</property>
             <property name="width-request">130</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
